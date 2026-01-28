@@ -5,6 +5,9 @@ import * as path from "@std/path";
 import { Port } from "../lib/utils/index.ts";
 import listInsights from "./operations/list-insights.ts";
 import lookupInsight from "./operations/lookup-insight.ts";
+import createInsight from "./operations/create-insight.ts";
+import deleteInsight from "./operations/delete-insight.ts";
+import * as insightsTable from "./tables/insights.ts";
 
 console.log("Loading configuration");
 
@@ -19,6 +22,10 @@ console.log(`Opening SQLite database at ${dbFilePath}`);
 await Deno.mkdir(path.dirname(dbFilePath), { recursive: true });
 const db = new Database(dbFilePath);
 
+console.log("Creating table");
+db.exec(insightsTable.createTable);
+
+
 console.log("Initialising server");
 
 const router = new oak.Router();
@@ -31,7 +38,29 @@ router.get("/_health", (ctx) => {
 router.get("/insights", (ctx) => {
   const result = listInsights({ db });
   ctx.response.body = result;
-  ctx.response.body = 200;
+  ctx.response.status = 200;
+});
+
+router.get("/insights/delete", (ctx) => {
+  const url = new URL(ctx.request.url);
+  const idParam = url.searchParams.get("id");
+
+  if (!idParam) {
+    ctx.response.status = 400;
+    ctx.response.body = { error: "Missing id" };
+    return;
+  }
+
+  const id = Number(idParam);
+  if (Number.isNaN(id)) {
+    ctx.response.status = 400;
+    ctx.response.body = { error: "Invalid id" };
+    return;
+  }
+
+  deleteInsight({ db, id });
+
+  ctx.response.status = 204;
 });
 
 router.get("/insights/:id", (ctx) => {
@@ -40,14 +69,20 @@ router.get("/insights/:id", (ctx) => {
   ctx.response.body = result;
   ctx.response.status = 200;
 });
-
-router.get("/insights/create", (ctx) => {
-  // TODO
+router.post("/insights/create", async (ctx) => {
+  const body = await ctx.request.body.json();
+  
+  const result = createInsight({
+    db,
+    brandId: body.brandId,
+    brandName: body.brandName,
+    text: body.text,
+  });
+  
+  ctx.response.body = result;
+  ctx.response.status = 201; // Created
 });
 
-router.get("/insights/delete", (ctx) => {
-  // TODO
-});
 
 const app = new oak.Application();
 
