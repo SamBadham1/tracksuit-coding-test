@@ -18,9 +18,13 @@ export const App = () => {
     setInsights((prev) => prev.filter((insight) => insight.id !== id));
   };
 
+  const handleCreate = (insight: Insight) => {
+    setInsights((prev) => [...prev, insight]);
+  };
+
   return (
     <main className={styles.main}>
-      <Header />
+      <Header onCreate={handleCreate} />
       <Insights
         className={styles.insights}
         insights={insights}
