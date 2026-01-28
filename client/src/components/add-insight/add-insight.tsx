@@ -34,6 +34,8 @@ export const AddInsight = (props: AddInsightProps) => {
 
       const created: Insight = await response.json();
       props.onCreate(created);
+      setBrand(BRANDS[0]?.id || 1);
+      setText("");
       props.onClose();
     } catch (error) {
       console.error("Failed to create insight:", error);
